@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.cu": "cuda-cpp",
+			"*.cuh": "cuda-cpp",
+			"*.h": "cpp"
+		},
+		// "clang-format.style": "file",
+		// "clang-format.executable.windows": "C:/LLVM/bin/clang-format.exe"
+	}
+}

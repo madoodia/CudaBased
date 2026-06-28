@@ -1,0 +1,4 @@
+--cuda-path=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3
+-IC:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3/include
+-I.
+-std=c++20

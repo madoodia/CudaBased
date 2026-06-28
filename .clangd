@@ -1,0 +1,6 @@
+CompileFlags:
+  Add:
+    - "--cuda-path=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3"
+    - "-IC:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3/include"
+    - "-ID:/madoodia/dev/CudaBased/Step_01_HelloCUDA/src"
+    - "-std=c++20"
