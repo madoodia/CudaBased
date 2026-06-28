@@ -41,8 +41,8 @@ int main()
     // b. Initialize the host arrays with dummy values.
     for (int i = 0; i < N; i++)
     {
-        h_A.push_back(sinf(i) * 2.0f);
-        h_B.push_back(cosf(i) * 3.0f);
+        h_A[i] = sinf(i) * 2.0f;
+        h_B[i] = cosf(i) * 3.0f;
     }
 
     // c. Call the host wrapper function we declared in kernel.h.

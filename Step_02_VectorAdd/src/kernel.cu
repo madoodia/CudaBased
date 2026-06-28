@@ -29,72 +29,52 @@ __global__ void vectorAddKernel(const float* d_A, const float* d_B, float* d_C, 
 // ============================================================================
 // 2. THE HOST WRAPPER (Runs on CPU, orchestrates the GPU execution)
 // ============================================================================
+// Add this helper struct at the top of kernel.cu
+struct DeviceBuffer
+{
+    float* ptr = nullptr;
+
+    // Destructor automatically frees the GPU memory when the object is destroyed
+    ~DeviceBuffer()
+    {
+        if (ptr)
+            cudaFree(ptr);
+    }
+};
+
 void launchVectorAdd(const float* h_A, const float* h_B, float* h_C, int N)
 {
     size_t size = N * sizeof(float);
 
-    // a. Declare the device pointers that will point to memory allocated in VRAM.
-    float* d_A = nullptr;
-    float* d_B = nullptr;
-    float* d_C = nullptr;
+    // Objects are allocated on the CPU stack
+    DeviceBuffer d_A, d_B, d_C;
 
-    // b. Allocate memory on the GPU for all three arrays.
-    if (cudaMalloc(&d_A, size) != cudaSuccess)
-    {
-        std::cerr << "Failed to allocate memory on the GPU." << std::endl;
+    // Allocate GPU memory into the objects
+    if (cudaMalloc(&d_A.ptr, size) != cudaSuccess)
         return;
-    }
-    if (cudaMalloc(&d_B, size) != cudaSuccess)
-    {
-        std::cerr << "Failed to allocate memory on the GPU." << std::endl;
+    if (cudaMalloc(&d_B.ptr, size) != cudaSuccess)
         return;
-    }
-    if (cudaMalloc(&d_C, size) != cudaSuccess)
-    {
-        std::cerr << "Failed to allocate memory on the GPU." << std::endl;
+    if (cudaMalloc(&d_C.ptr, size) != cudaSuccess)
         return;
-    }
 
-    // c. Copy input vectors A and B from CPU RAM (Host) to GPU VRAM (Device).
-    if (cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        std::cerr << "Failed to copy data from CPU to GPU." << std::endl;
+    // Copy data
+    if (cudaMemcpy(d_A.ptr, h_A, size, cudaMemcpyHostToDevice) != cudaSuccess)
         return;
-    }
-    if (cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        std::cerr << "Failed to copy data from CPU to GPU." << std::endl;
+    if (cudaMemcpy(d_B.ptr, h_B, size, cudaMemcpyHostToDevice) != cudaSuccess)
         return;
-    }
 
-    // d. Configure the execution grid layout.
+    // Launch
     int threadsPerBlock = 256;
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
+    vectorAddKernel<<<blocksPerGrid, threadsPerBlock>>>(d_A.ptr, d_B.ptr, d_C.ptr, N);
 
-    // e. Launch the GPU kernel.
-    vectorAddKernel<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, N);
-
-    // f. Wait for the GPU to finish execution and check for errors.
-    cudaError_t syncErr = cudaDeviceSynchronize();
-    cudaError_t asyncErr = cudaGetLastError();
-    if (syncErr != cudaSuccess)
-    {
-        std::cerr << "Device synchronization failed: " << cudaGetErrorString(syncErr) << std::endl;
-    }
-    if (asyncErr != cudaSuccess)
-    {
-        std::cerr << "Kernel launch failed: " << cudaGetErrorString(asyncErr) << std::endl;
-    }
-
-    // g. Copy the output vector C from GPU VRAM (Device) back to CPU RAM (Host).
-    if (cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost) != cudaSuccess)
-    {
-        std::cerr << "Failed to copy data from GPU to CPU." << std::endl;
+    if (cudaDeviceSynchronize() != cudaSuccess)
         return;
-    }
 
-    // h. Free the allocated memory on the GPU to prevent VRAM memory leaks.
-    cudaFree(d_A);
-    cudaFree(d_B);
-    cudaFree(d_C);
+    // Copy back
+    if (cudaMemcpy(h_C, d_C.ptr, size, cudaMemcpyDeviceToHost) != cudaSuccess)
+        return;
+
+    // No need to call cudaFree manually!
+    // When the function returns (either here or early), d_A, d_B, and d_C destructors run automatically.
 }
